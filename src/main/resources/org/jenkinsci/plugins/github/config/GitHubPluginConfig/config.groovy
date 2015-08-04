@@ -5,24 +5,22 @@ import com.cloudbees.jenkins.GitHubPushTrigger
 def f = namespace(lib.FormTagLib);
 
 f.section(title: descriptor.displayName) {
-    f.entry(title: _("Servers configs with credentials to manage GitHub integrations"),
-            description: _("List of GitHub Servers to manage hooks, set commit statuses etc."),
+    f.entry(title: _("GitHub servers"),
+            description: _("List of GitHub servers with configurations"),
             help: descriptor.getHelpFile()) {
         
         f.repeatableHeteroProperty(
                 field: "configs",
                 hasHeader: "true",
-                addCaption: _("Add GitHub Server Config"),
-                deleteCaption: _("Delete config"))
+                addCaption: _("Add GitHub Server"),
+                deleteCaption: _("Delete GitHub Server"))
     }
 
-    if (instance.manageHooks) {
-        f.validateButton(
-                title: _("Re-register hooks for all jobs"),
-                progress: _("Scanning all items..."),
-                method: "reRegister"
-        )
-    }
+    f.validateButton(
+            title: _("Re-register hooks for all jobs"),
+            progress: _("Scanning all items..."),
+            method: "reRegister"
+    )
 
     f.advanced() {
         if (GitHubPushTrigger.ALLOW_HOOKURL_OVERRIDE) {
