@@ -16,13 +16,11 @@ f.section(title: descriptor.displayName) {
                 deleteCaption: _("Delete config"))
     }
 
-    if (instance.manageHooks) {
-        f.validateButton(
-                title: _("Re-register hooks for all jobs"),
-                progress: _("Scanning all items..."),
-                method: "reRegister"
-        )
-    }
+    f.validateButton(
+            title: _("Re-register hooks for all jobs"),
+            progress: _("Scanning all items..."),
+            method: "reRegister"
+    )
 
     f.advanced() {
         if (GitHubPushTrigger.ALLOW_HOOKURL_OVERRIDE) {
