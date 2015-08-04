@@ -62,14 +62,9 @@ public class GitHubServerConfig extends AbstractDescribableImpl<GitHubServerConf
      */
     private static final String UNKNOWN_TOKEN = "UNKNOWN_TOKEN";
 
-    private String apiUrl;
+    private String apiUrl = GITHUB_URL;
     private boolean manageHooks = true;
     private final String credentialsId;
-
-    /**
-     * only to set to default apiUrl when uncheck
-     */
-    private transient boolean custom;
 
     @DataBoundConstructor
     public GitHubServerConfig(String credentialsId) {
@@ -77,34 +72,17 @@ public class GitHubServerConfig extends AbstractDescribableImpl<GitHubServerConf
     }
 
     /**
-     * {@link #custom} field should be defined earlier. Because of we get full content of optional block,
-     * even if it already unchecked. So if we want to return api url to default value - custom value should affect
-     *
-     * @param apiUrl custom url if GH. Set api url to default value if custom is unchecked or value is blank
+     * @param apiUrl public or private GH api url.
      */
     @DataBoundSetter
     public void setApiUrl(String apiUrl) {
-        if (custom) {
-            this.apiUrl = defaultIfBlank(apiUrl, GITHUB_URL);
-        } else {
-            this.apiUrl = GITHUB_URL;
-        }
-    }
-
-    /**
-     * Should be called before {@link #setApiUrl(String)}
-     *
-     * @param custom true if optional block "Custom GH Api Url" checked in UI
-     */
-    @DataBoundSetter
-    public void setCustom(boolean custom) {
-        this.custom = custom;
+        this.apiUrl = apiUrl;
     }
 
     /**
      * This server config will be used to manage GH Hooks if true
      *
-     * @param manageHooks false to ignore this config on hook manipulations
+     * @param manageHooks false to ignore this config on hook auto-management
      */
     @DataBoundSetter
     public void setManageHooks(boolean manageHooks) {
@@ -113,13 +91,6 @@ public class GitHubServerConfig extends AbstractDescribableImpl<GitHubServerConf
 
     public String getApiUrl() {
         return apiUrl;
-    }
-
-    /**
-     * @see #isUrlCustom(String)
-     */
-    public boolean isCustom() {
-        return isUrlCustom(apiUrl);
     }
 
     public boolean isManageHooks() {
