@@ -17,6 +17,9 @@ import jenkins.triggers.SCMTriggerItem.SCMTriggerItems;
 
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
+import org.jenkinsci.plugins.multiplescms.MultiSCM;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -30,6 +33,8 @@ import java.util.Set;
  * @since 1.7
  */
 public abstract class GitHubRepositoryNameContributor implements ExtensionPoint {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitHubRepositoryNameContributor.class);
+
     /**
      * Looks at the definition of {@link AbstractProject} and list up the related github repositories,
      * then puts them into the collection.

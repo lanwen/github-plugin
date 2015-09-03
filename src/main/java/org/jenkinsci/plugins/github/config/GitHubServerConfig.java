@@ -48,7 +48,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * So one github server can be used with many creds and one token can be used multiply times in lot of gh servers
  *
  * @author lanwen (Merkushev Kirill)
- * @since TODO
+ * @since 1.13.0
  */
 @XStreamAlias("github-server-config")
 public class GitHubServerConfig extends AbstractDescribableImpl<GitHubServerConfig> {
@@ -190,6 +190,11 @@ public class GitHubServerConfig extends AbstractDescribableImpl<GitHubServerConf
 
     /**
      * Returns true if given host is part of stored (or default if blank) api url
+     *
+     * For example:
+     * withHost(api.github.com).apply(config for ~empty~) = true
+     * withHost(api.github.com).apply(config for api.github.com) = true
+     * withHost(api.github.com).apply(config for github.company.com) = false
      *
      * @param host host to find in api url
      *

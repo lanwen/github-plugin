@@ -21,7 +21,6 @@ import jenkins.triggers.SCMTriggerItem.SCMTriggerItems;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.github.GitHubPlugin;
 import org.jenkinsci.plugins.github.config.GitHubPluginConfig;
-import org.jenkinsci.plugins.github.deprecated.Credential;
 import org.jenkinsci.plugins.github.internal.GHPluginConfigException;
 import org.jenkinsci.plugins.github.migration.Migrator;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -220,13 +219,15 @@ public class GitHubPushTrigger extends Trigger<Job<?, ?>> implements GitHubTrigg
          * @since 1.350
          */
         public void writeLogTo(XMLOutput out) throws IOException {
-            new AnnotatedLargeText<GitHubWebHookPollingAction>(getLogFile(), Charsets.UTF_8, true, this).writeHtmlTo(0, out.asWriter());
+            new AnnotatedLargeText<GitHubWebHookPollingAction>(getLogFile(), Charsets.UTF_8, true, this)
+                    .writeHtmlTo(0, out.asWriter());
         }
     }
 
     @Extension
     public static class DescriptorImpl extends TriggerDescriptor {
-        private transient final SequentialExecutionQueue queue = new SequentialExecutionQueue(MasterComputer.threadPoolForRemoting);
+        private final transient SequentialExecutionQueue queue =
+                new SequentialExecutionQueue(MasterComputer.threadPoolForRemoting);
 
         private transient String hookUrl;
 
@@ -314,7 +315,8 @@ public class GitHubPushTrigger extends Trigger<Job<?, ?>> implements GitHubTrigg
         }
 
         /**
-         * Uses global xstream to enable migration alias used in {@link Migrator#enableCompatibilityAliases()}
+         * Uses global xstream to enable migration alias used in
+         * {@link Migrator#enableCompatibilityAliases()}
          */
         @Override
         protected XmlFile getConfigFile() {
@@ -333,7 +335,9 @@ public class GitHubPushTrigger extends Trigger<Job<?, ?>> implements GitHubTrigg
     /**
      * Set to false to prevent the user from overriding the hook URL.
      */
-    public static boolean ALLOW_HOOKURL_OVERRIDE = !Boolean.getBoolean(GitHubPushTrigger.class.getName() + ".disableOverride");
+    public static final boolean ALLOW_HOOKURL_OVERRIDE = !Boolean.getBoolean(
+            GitHubPushTrigger.class.getName() + ".disableOverride"
+    );
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHubPushTrigger.class);
 }

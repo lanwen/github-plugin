@@ -1,6 +1,7 @@
 package com.cloudbees.jenkins;
 
 import hudson.Extension;
+import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.model.PeriodicWork;
 import hudson.triggers.Trigger;
@@ -35,13 +36,13 @@ public class Cleaner extends PeriodicWork {
      * This queue is thread-safe, so any thread can write or
      * fetch names to this queue without additional sync
      */
-    private final Queue<GitHubRepositoryName> сleanQueue = new ConcurrentLinkedQueue<GitHubRepositoryName>();
+    private final Queue<GitHubRepositoryName> cleanQueue = new ConcurrentLinkedQueue<GitHubRepositoryName>();
 
     /**
      * Called when a {@link GitHubPushTrigger} is about to be removed.
      */
-    /* package */ void onStop(Job<?,?> job) {
-        сleanQueue.addAll(GitHubRepositoryNameContributor.parseAssociatedNames(job));
+    /* package */ void onStop(Job<?, ?> job) {
+        cleanQueue.addAll(GitHubRepositoryNameContributor.parseAssociatedNames(job));
     }
 
     @Override
@@ -56,6 +57,10 @@ public class Cleaner extends PeriodicWork {
      */
     @Override
     protected void doRun() throws Exception {
+        if (!GitHubPlugin.configuration().isManageHooks()) {
+            return;
+        }
+
         URL url = GitHubPlugin.configuration().getHookUrl();
 
         List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
@@ -63,8 +68,8 @@ public class Cleaner extends PeriodicWork {
                 .filter(isAlive())  // live repos
                 .transformAndConcat(associatedNames()).toList();
 
-        while (!сleanQueue.isEmpty()) {
-            GitHubRepositoryName name = сleanQueue.poll();
+        while (!cleanQueue.isEmpty()) {
+            GitHubRepositoryName name = cleanQueue.poll();
 
             WebhookManager.forHookUrl(url).unregisterFor(name, aliveRepos);
         }
@@ -73,5 +78,4 @@ public class Cleaner extends PeriodicWork {
     public static Cleaner get() {
         return PeriodicWork.all().get(Cleaner.class);
     }
-
 }

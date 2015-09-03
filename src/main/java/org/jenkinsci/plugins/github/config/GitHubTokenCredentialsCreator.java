@@ -9,6 +9,7 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.domains.DomainSpecification;
 import com.cloudbees.plugins.credentials.domains.HostnameSpecification;
 import com.cloudbees.plugins.credentials.domains.SchemeSpecification;
+import com.google.common.collect.ImmutableList;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -52,7 +53,7 @@ import static org.kohsuke.github.GHAuthorization.REPO_STATUS;
  * and save it as token credentials with help of plain-credentials plugin
  *
  * @author lanwen (Merkushev Kirill)
- * @since TODO
+ * @since 1.13.0
  */
 @Extension
 public class GitHubTokenCredentialsCreator extends Descriptor<GitHubTokenCredentialsCreator> implements
@@ -67,7 +68,7 @@ public class GitHubTokenCredentialsCreator extends Descriptor<GitHubTokenCredent
      * - repo - to see private repos
      * - repo:status - to manipulate commit statuses
      */
-    public static final List<String> GH_PLUGIN_REQUIRED_SCOPE = asList(
+    public static final List<String> GH_PLUGIN_REQUIRED_SCOPE = ImmutableList.of(
             AMIN_HOOK,
             REPO,
             REPO_STATUS

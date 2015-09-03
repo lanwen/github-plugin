@@ -1,8 +1,8 @@
 package org.jenkinsci.plugins.github.webhook;
 
-import com.cloudbees.jenkins.GitHubPushTrigger;
 import com.cloudbees.jenkins.GitHubWebHook;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
+import org.jenkinsci.plugins.github.config.GitHubPluginConfig;
 import org.jenkinsci.plugins.github.util.FluentIterableWrapper;
 import org.kohsuke.github.GHEvent;
 import org.kohsuke.stapler.HttpResponses;
@@ -18,8 +18,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.lang.reflect.InvocationTargetException;
 import java.security.interfaces.RSAPublicKey;
-import java.util.logging.Logger;
 
+import static com.cloudbees.jenkins.GitHubWebHook.X_INSTANCE_IDENTITY;
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.annotation.ElementType.FIELD;
@@ -27,7 +28,6 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static javax.servlet.http.HttpServletResponse.SC_METHOD_NOT_ALLOWED;
-import static javax.servlet.http.HttpServletResponse.SC_OK;
 import static org.apache.commons.codec.binary.Base64.encodeBase64;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.jenkinsci.plugins.github.util.FluentIterableWrapper.from;
@@ -45,7 +45,6 @@ import static org.kohsuke.stapler.HttpResponses.error;
 @InterceptorAnnotation(RequirePostWithGHHookPayload.Processor.class)
 public @interface RequirePostWithGHHookPayload {
     class Processor extends Interceptor {
-        private static final Logger LOGGER = Logger.getLogger(Processor.class.getName());
 
         @Override
         public Object invoke(StaplerRequest req, StaplerResponse rsp, Object instance, Object[] arguments)
@@ -53,7 +52,6 @@ public @interface RequirePostWithGHHookPayload {
 
             shouldBePostMethod(req);
             returnsInstanceIdentityIfLocalUrlTest(req);
-            logPingEvent(req);
             shouldContainParseablePayload(arguments);
 
             return target.invoke(req, rsp, instance, arguments);
@@ -73,7 +71,7 @@ public @interface RequirePostWithGHHookPayload {
         }
 
         /**
-         * Used for {@link GitHubPushTrigger.DescriptorImpl#doCheckHookUrl(java.lang.String)}
+         * Used for {@link GitHubPluginConfig#doCheckHookUrl(String)}}
          */
         protected void returnsInstanceIdentityIfLocalUrlTest(StaplerRequest req) throws InvocationTargetException {
             if (req.getHeader(GitHubWebHook.URL_VALIDATION_HEADER) != null) {
@@ -84,32 +82,7 @@ public @interface RequirePostWithGHHookPayload {
                             throws IOException, ServletException {
                         RSAPublicKey key = new InstanceIdentity().getPublic();
                         rsp.setStatus(HttpServletResponse.SC_OK);
-                        rsp.setHeader(GitHubWebHook.X_INSTANCE_IDENTITY, new String(encodeBase64(key.getEncoded())));
-                    }
-                });
-            }
-        }
-
-        /**
-         * Additional logic to log ping event. In future can be replaced with separate
-         * {@link org.jenkinsci.plugins.github.extension.GHEventsSubscriber} with
-         * filtering of PING event to contribute.
-         *
-         * Wait for https://github.com/kohsuke/github-api/pull/204 will be released
-         *
-         * @throws InvocationTargetException returns OK 200 to client on ping event
-         */
-        protected void logPingEvent(StaplerRequest req) throws InvocationTargetException {
-            if ("ping".equals(req.getHeader(GHEventHeader.PayloadHandler.EVENT_HEADER))) {
-                // until https://github.com/kohsuke/github-api/pull/204 will not be released
-                // after that use GHEvent.PING event form arguments
-
-                LOGGER.info("Got ping event from GH");
-                throw new InvocationTargetException(new HttpResponses.HttpResponseException() {
-                    public void generateResponse(StaplerRequest req, StaplerResponse rsp, Object node)
-                            throws IOException {
-                        rsp.setStatus(SC_OK);
-                        rsp.getWriter().println("Ping received!");
+                        rsp.setHeader(X_INSTANCE_IDENTITY, new String(encodeBase64(key.getEncoded()), UTF_8));
                     }
                 });
             }
@@ -124,18 +97,27 @@ public @interface RequirePostWithGHHookPayload {
          * @throws InvocationTargetException if any of preconditions is not satisfied
          */
         protected void shouldContainParseablePayload(Object[] arguments) throws InvocationTargetException {
-            isTrue(arguments.length == 2, 
+            isTrue(arguments.length == 2,
                     "GHHook root action should take <(GHEvent) event> and <(String) payload> only");
 
             FluentIterableWrapper<Object> from = from(newArrayList(arguments));
-            isTrue(from.firstMatch(instanceOf(GHEvent.class)).isPresent(), "Hook should contain event type");
-            isTrue(isNotBlank((String) from.firstMatch(instanceOf(String.class)).or("")), "Hook should contain payload");
+
+            isTrue(
+                    from.firstMatch(instanceOf(GHEvent.class)).isPresent(),
+                    "Hook should contain event type"
+            );
+            isTrue(
+                    isNotBlank((String) from.firstMatch(instanceOf(String.class)).or("")),
+                    "Hook should contain payload"
+            );
         }
 
         /**
          * Utility method to stop preprocessing if condition is false
+         *
          * @param condition on false throws exception
-         * @param msg to add to exception
+         * @param msg       to add to exception
+         *
          * @throws InvocationTargetException BAD REQUEST 400 status code with message
          */
         private void isTrue(boolean condition, String msg) throws InvocationTargetException {

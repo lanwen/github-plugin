@@ -2,17 +2,19 @@ package org.jenkinsci.plugins.github.extension;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractProject;
 import hudson.model.Job;
 import jenkins.model.Jenkins;
-
+import org.jenkinsci.plugins.github.util.misc.NullSafeFunction;
+import org.jenkinsci.plugins.github.util.misc.NullSafePredicate;
 import org.kohsuke.github.GHEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Set;
 
@@ -40,7 +42,7 @@ public abstract class GHEventsSubscriber implements ExtensionPoint {
      *
      * @return true to provide events to register and subscribe for this project
      */
-    protected abstract boolean isApplicable(Job<?, ?> project);
+    protected abstract boolean isApplicable(@Nullable Job<?, ?> project);
 
     /**
      * Should be not null. Should return only events which this extension can parse in {@link #onEvent(GHEvent, String)}
@@ -76,9 +78,9 @@ public abstract class GHEventsSubscriber implements ExtensionPoint {
      * @return converter to use in iterable manipulations
      */
     public static Function<GHEventsSubscriber, Set<GHEvent>> extractEvents() {
-        return new Function<GHEventsSubscriber, Set<GHEvent>>() {
+        return new NullSafeFunction<GHEventsSubscriber, Set<GHEvent>>() {
             @Override
-            public Set<GHEvent> apply(GHEventsSubscriber subscriber) {
+            protected Set<GHEvent> applyNullSafe(@Nonnull GHEventsSubscriber subscriber) {
                 return defaultIfNull(subscriber.events(), Collections.<GHEvent>emptySet());
             }
         };
@@ -94,7 +96,7 @@ public abstract class GHEventsSubscriber implements ExtensionPoint {
     public static Predicate<GHEventsSubscriber> isApplicableFor(final Job<?, ?> project) {
         return new Predicate<GHEventsSubscriber>() {
             @Override
-            public boolean apply(GHEventsSubscriber subscriber) {
+            protected boolean applyNullSafe(@Nonnull GHEventsSubscriber subscriber) {
                 return subscriber.isApplicable(project);
             }
         };
@@ -108,9 +110,9 @@ public abstract class GHEventsSubscriber implements ExtensionPoint {
      * @return predicate to match against {@link GHEventsSubscriber}
      */
     public static Predicate<GHEventsSubscriber> isInterestedIn(final GHEvent event) {
-        return new Predicate<GHEventsSubscriber>() {
+        return new NullSafePredicate<GHEventsSubscriber>() {
             @Override
-            public boolean apply(GHEventsSubscriber subscriber) {
+            protected boolean applyNullSafe(@Nonnull GHEventsSubscriber subscriber) {
                 return defaultIfNull(subscriber.events(), emptySet()).contains(event);
             }
         };
@@ -125,13 +127,13 @@ public abstract class GHEventsSubscriber implements ExtensionPoint {
      * @return function to process {@link GHEventsSubscriber} list. Returns null on apply.
      */
     public static Function<GHEventsSubscriber, Void> processEvent(final GHEvent event, final String payload) {
-        return new Function<GHEventsSubscriber, Void>() {
+        return new NullSafeFunction<GHEventsSubscriber, Void>() {
             @Override
-            public Void apply(GHEventsSubscriber subscriber) {
+            protected Void applyNullSafe(@Nonnull GHEventsSubscriber subscriber) {
                 try {
                     subscriber.onEvent(event, payload);
                 } catch (Throwable t) {
-                    LOGGER.error("Subscriber {} failed to process {} hook, skipping...", 
+                    LOGGER.error("Subscriber {} failed to process {} hook, skipping...",
                             subscriber.getClass().getName(), event, t);
                 }
                 return null;

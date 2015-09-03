@@ -15,6 +15,7 @@ import net.sf.json.JSONObject;
 import org.apache.commons.codec.binary.Base64;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.jenkinsci.plugins.github.GitHubPlugin;
+import org.jenkinsci.plugins.github.Messages;
 import org.jenkinsci.plugins.github.internal.GHPluginConfigException;
 import org.jenkinsci.plugins.github.migration.Migrator;
 import org.kohsuke.github.GitHub;
@@ -34,7 +35,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static java.lang.String.format;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.jenkinsci.plugins.github.config.GitHubServerConfig.allowedToManageHooks;
 import static org.jenkinsci.plugins.github.config.GitHubServerConfig.loginToGithub;
 import static org.jenkinsci.plugins.github.util.FluentIterableWrapper.from;
@@ -44,7 +47,7 @@ import static org.jenkinsci.plugins.github.util.FluentIterableWrapper.from;
  * such as hook managing policy, credentials etc.
  *
  * @author lanwen (Merkushev Kirill)
- * @since TODO
+ * @since 1.13.0
  */
 @Extension
 public class GitHubPluginConfig extends GlobalConfiguration {
@@ -102,15 +105,15 @@ public class GitHubPluginConfig extends GlobalConfiguration {
         this.overrideHookUrl = overrideHookUrl;
     }
 
+    /**
+     * @return hook url used as endpoint to search and write auto-managed hooks in GH
+     * @throws GHPluginConfigException if default jenkins url is malformed
+     */
     public URL getHookUrl() throws GHPluginConfigException {
-        try {
-            return hookUrl != null
-                    ? hookUrl
-                    : new URL(Jenkins.getInstance().getRootUrl() + GitHubWebHook.get().getUrlName() + '/');
-        } catch (MalformedURLException e) {
-            throw new GHPluginConfigException(
-                    "Mailformed GH hook url in global configuration (%s)", e.getMessage()
-            );
+        if (hookUrl != null) {
+            return hookUrl;
+        } else {
+            return constructDefaultUrl();
         }
     }
 
@@ -156,6 +159,8 @@ public class GitHubPluginConfig extends GlobalConfiguration {
         try {
             req.bindJSON(this, json);
         } catch (Exception e) {
+            LOGGER.debug("Problem while submitting form for GitHub Plugin ({})", e.getMessage(), e);
+            LOGGER.trace("GH form data: {}", json.toString());
             throw new FormException(
                     format("Mailformed GitHub Plugin configuration (%s)", e.getMessage()), e, "github-configuration");
         }
@@ -197,7 +202,7 @@ public class GitHubPluginConfig extends GlobalConfiguration {
                         + "Are you running your own app?", value);
             }
             RSAPublicKey key = identity.getPublic();
-            String expected = new String(Base64.encodeBase64(key.getEncoded()));
+            String expected = new String(Base64.encodeBase64(key.getEncoded()), UTF_8);
             if (!expected.equals(v)) {
                 // if it responds but with a different ID, that's more likely wrong than correct
                 return FormValidation.error("%s is connecting to different Jenkins instances", value);
@@ -206,6 +211,36 @@ public class GitHubPluginConfig extends GlobalConfiguration {
             return FormValidation.ok();
         } catch (IOException e) {
             return FormValidation.error(e, "Failed to test a connection to %s", value);
+        }
+    }
+
+    /**
+     * Used by default in {@link #getHookUrl()}
+     *
+     * @return url to be used in GH hooks configuration as main endpoint
+     * @throws GHPluginConfigException if jenkins root url empty of malformed
+     */
+    private URL constructDefaultUrl() {
+        String jenkinsUrl = Jenkins.getInstance().getRootUrl();
+        validateConfig(isNotEmpty(jenkinsUrl), Messages.global_config_url_is_empty());
+        try {
+            return new URL(jenkinsUrl + GitHubWebHook.get().getUrlName() + '/');
+        } catch (MalformedURLException e) {
+            throw new GHPluginConfigException(Messages.global_config_hook_url_is_malformed(e.getMessage()));
+        }
+    }
+
+    /**
+     * Util method just to hide one more if for better readability
+     *
+     * @param state   to check. If false, then exception will be thrown
+     * @param message message to describe exception in case of false state
+     *
+     * @throws GHPluginConfigException if state is false
+     */
+    private void validateConfig(boolean state, String message) {
+        if (!state) {
+            throw new GHPluginConfigException(message);
         }
     }
 }
