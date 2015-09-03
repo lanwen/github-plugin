@@ -94,7 +94,7 @@ public abstract class GHEventsSubscriber implements ExtensionPoint {
      * @return predicate to use in iterable filtering
      */
     public static Predicate<GHEventsSubscriber> isApplicableFor(final Job<?, ?> project) {
-        return new Predicate<GHEventsSubscriber>() {
+        return new NullSafePredicate<GHEventsSubscriber>() {
             @Override
             protected boolean applyNullSafe(@Nonnull GHEventsSubscriber subscriber) {
                 return subscriber.isApplicable(project);

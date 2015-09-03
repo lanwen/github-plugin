@@ -2,19 +2,15 @@ package org.jenkinsci.plugins.github.util;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
-import com.cloudbees.jenkins.GitHubPushTrigger;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-
 import hudson.model.Job;
 import hudson.triggers.Trigger;
-
+import jenkins.model.ParameterizedJobMixIn;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 
 import java.util.Collection;
 
-import jenkins.model.ParameterizedJobMixIn;
-import static org.jenkinsci.plugins.github.util.FluentIterableWrapper.from;
 import static org.jenkinsci.plugins.github.extension.GHEventsSubscriber.isApplicableFor;
 import static org.jenkinsci.plugins.github.util.FluentIterableWrapper.from;
 
@@ -35,28 +31,24 @@ public final class JobInfoHelpers {
      *
      * @return predicate with true on apply if job contains trigger of given class
      */
-    public static Predicate<AbstractProject> withTrigger(final Class<? extends Trigger> clazz) {
-        return new Predicate<AbstractProject>() {
-            public boolean apply(AbstractProject job) {
-                return job != null && job.getTrigger(clazz) != null;
-//    public static Predicate<Job> withTrigger(final Class<? extends Trigger> clazz) {
-//        return new Predicate<Job>() {
-//            public boolean apply(Job job) {
-//                if (job instanceof ParameterizedJobMixIn.ParameterizedJob) {
-//                    ParameterizedJobMixIn.ParameterizedJob pJob = (ParameterizedJobMixIn.ParameterizedJob) job;
-//                    // TODO use standard method in 1.621+
-//                    for (Trigger trigger : pJob.getTriggers().values()) {
-//                        if (trigger instanceof GitHubPushTrigger) {
-//                            return true;
-//                        }
-//                    }
-//                    return false;
-//                } else {
-//                    return false;
-//                }
-//            }
-//        };
-//    }
+    public static Predicate<Job> withTrigger(final Class<? extends Trigger> clazz) {
+        return new Predicate<Job>() {
+            public boolean apply(Job job) {
+                if (job instanceof ParameterizedJobMixIn.ParameterizedJob) {
+                    ParameterizedJobMixIn.ParameterizedJob pJob = (ParameterizedJobMixIn.ParameterizedJob) job;
+                    // TODO use standard method in 1.621+
+                    for (Trigger trigger : pJob.getTriggers().values()) {
+                        if (clazz.isInstance(trigger)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                } else {
+                    return false;
+                }
+            }
+        };
+    }
 
     /**
      * Can be useful to ignore disabled jobs on reregistering hooks

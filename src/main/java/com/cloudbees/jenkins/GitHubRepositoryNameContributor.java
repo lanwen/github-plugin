@@ -14,16 +14,13 @@ import hudson.scm.SCM;
 import jenkins.model.Jenkins;
 import jenkins.triggers.SCMTriggerItem;
 import jenkins.triggers.SCMTriggerItem.SCMTriggerItems;
-
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
-import org.jenkinsci.plugins.multiplescms.MultiSCM;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -42,7 +39,7 @@ public abstract class GitHubRepositoryNameContributor implements ExtensionPoint 
      * @deprecated Use {@link #parseAssociatedNames(Job, Collection)}
      */
     @Deprecated
-    public void parseAssociatedNames(AbstractProject<?,?> job, Collection<GitHubRepositoryName> result) {
+    public void parseAssociatedNames(AbstractProject<?, ?> job, Collection<GitHubRepositoryName> result) {
         parseAssociatedNames((Job) job, result);
     }
 
@@ -50,7 +47,7 @@ public abstract class GitHubRepositoryNameContributor implements ExtensionPoint 
      * Looks at the definition of {@link Job} and list up the related github repositories,
      * then puts them into the collection.
      */
-    public /*abstract*/ void parseAssociatedNames(Job<?,?> job, Collection<GitHubRepositoryName> result) {
+    public /*abstract*/ void parseAssociatedNames(Job<?, ?> job, Collection<GitHubRepositoryName> result) {
         if (Util.isOverridden(GitHubRepositoryNameContributor.class, getClass(),
                 "parseAssociatedNames", AbstractProject.class, Collection.class) && job instanceof AbstractProject) {
             parseAssociatedNames((AbstractProject) job, result);
@@ -101,6 +98,7 @@ public abstract class GitHubRepositoryNameContributor implements ExtensionPoint 
                 try {
                     contributor.buildEnvironmentFor(job, env, TaskListener.NULL);
                 } catch (Exception e) {
+                    LOGGER.debug(e.getMessage(), e);
                     // ignore
                 }
             }

@@ -1,10 +1,8 @@
 package com.cloudbees.jenkins;
 
 import hudson.Extension;
-import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.model.PeriodicWork;
-import hudson.triggers.Trigger;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.github.GitHubPlugin;
 import org.jenkinsci.plugins.github.webhook.WebhookManager;
